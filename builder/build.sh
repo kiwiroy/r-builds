@@ -1,10 +1,11 @@
 #!/bin/bash
 set -e
 
-export CRAN=${CRAN-"https://cran.rstudio.com"}
+export CRAN=${CRAN:-"https://cran.rstudio.com"}
 export S3_BUCKET_PREFIX=${S3_BUCKET_PREFIX-""}
 export OS_IDENTIFIER=${OS_IDENTIFIER-"unknown"}
 export TARBALL_NAME="R-${R_VERSION}-${OS_IDENTIFIER}.tar.gz"
+export PREFIX=${PREFIX:-"/opt/R"}
 
 # Some Dockerfiles may copy a `/env.sh` to set up environment variables
 # that require command substitution. If this file exists, source it.
@@ -30,12 +31,19 @@ upload_r() {
     echo "Storing artifact locally: ${LOCAL_STORE}, tarball: ${TARBALL_NAME}"
     mkdir -p ${LOCAL_STORE}/${baseName}
     cp /tmp/${TARBALL_NAME} ${LOCAL_STORE}/${baseName}/${TARBALL_NAME}
+    # check if PKG_FILE has been set by a packager script and act accordingly
+    if [ -n "$PKG_FILE" ] && [ "$PKG_FILE" != "" ]; then
+      if [ -f "$PKG_FILE" ]; then
+        PKG_NAME=$(basename ${PKG_FILE})
+        cp ${PKG_FILE} ${LOCAL_STORE}/${baseName}/${PKG_NAME}
+      fi
+    fi
   fi
 }
 
 # archive_r() - $1 as r version
 archive_r() {
-  tar czf /tmp/${TARBALL_NAME} --directory=/opt/R ${1} --owner=0 --group=0
+  tar czf /tmp/${TARBALL_NAME} --directory=${PREFIX} R-${1} --owner=0 --group=0
 }
 
 fetch_r_source() {
@@ -101,7 +109,7 @@ compile_r() {
   R_UNZIPCMD=/usr/bin/unzip \
   R_ZIPCMD=/usr/bin/zip \
   ./configure \
-    --prefix=/opt/R/${1} \
+    --prefix=${PREFIX}/R-${1} \
     ${CONFIGURE_OPTIONS} \
     ${build_flag}
   make clean
@@ -110,7 +118,7 @@ compile_r() {
 
   # Add OS identifier to the default HTTP user agent.
   # Set this in the system Rprofile so it works when R is run with --vanilla.
-  cat <<EOF >> /opt/R/${1}/lib/R/library/base/R/Rprofile
+  cat <<EOF >> ${PREFIX}/R-${1}/lib/R/library/base/R/Rprofile
 ## Set the default HTTP user agent
 local({
   os_identifier <- if (file.exists("/etc/os-release")) {
@@ -138,7 +146,7 @@ package_r() {
 }
 
 set_up_environment() {
-  mkdir -p /opt/R
+  mkdir -p ${PREFIX}
 }
 
 _version_is_greater_than() {

@@ -12,14 +12,14 @@ fi
 
 # create post-install script required for openblas
 cat <<EOF >> /post-install.sh
-mv /opt/R/${R_VERSION}/lib/R/lib/libRblas.so /opt/R/${R_VERSION}/lib/R/lib/libRblas.so.keep 
-ln -s /usr/lib64/libopenblasp.so /opt/R/${R_VERSION}/lib/R/lib/libRblas.so
+mv ${PREFIX}/R-${R_VERSION}/lib/R/lib/libRblas.so ${PREFIX}/R-${R_VERSION}/lib/R/lib/libRblas.so.keep
+ln -s /usr/lib64/libopenblasp.so ${PREFIX}/R-${R_VERSION}/lib/R/lib/libRblas.so
 EOF
 
 # create after-remove script to remove internal blas
 cat <<EOF >> /before-remove.sh
-if [ -d /opt/R/${R_VERSION} ]; then
-  rm -r /opt/R/${R_VERSION}
+if [ -d ${PREFIX}/R-${R_VERSION} ]; then
+  rm -r ${PREFIX}/R-${R_VERSION}
 fi
 EOF
 
@@ -59,8 +59,7 @@ fpm \
   -d xz-devel \
   -d zip \
   -d zlib-devel \
-  /opt/R/${R_VERSION}
+  ${PREFIX}/R-${R_VERSION}
 
 shopt -s extglob
 export PKG_FILE=$(ls /tmp/output/centos-7/[rR]-${R_VERSION}*.@(deb|rpm) | head -1)
-

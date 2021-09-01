@@ -70,6 +70,11 @@ ENV CONFIGURE_OPTIONS="\
 # RHEL 7 doesn't have the inconsolata font, so override the defaults.
 ENV R_RD4PDF="times,hyper"
 
+RUN yum -y update && \
+    yum -y install centos-release-scl && \
+    yum -y install devtoolset-8 && \
+    yum clean all
+
 COPY package.centos-7 /package.sh
 COPY build.sh .
-ENTRYPOINT ./build.sh
+ENTRYPOINT ["scl", "enable", "devtoolset-8", "./build.sh"]

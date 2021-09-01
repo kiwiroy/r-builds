@@ -1,8 +1,32 @@
 PLATFORMS := ubuntu-1604 ubuntu-1804 ubuntu-2004 debian-9 debian-10 centos-7 centos-8 opensuse-42 opensuse-15 opensuse-152
 SLS_BINARY ?= ./node_modules/serverless/bin/serverless
 
+R_VERSION := 4.1.1
+PREFIX := /opt/R
+PLATFORM := centos-7
+
 deps:
 	npm install
+
+docker-$(PLATFORM)-build: builder/Dockerfile.$(PLATFORM) builder/package.$(PLATFORM) builder/build.sh builder/docker-compose.yml
+	@cd builder && docker-compose build --progress plain $(PLATFORM)
+
+artifacts/r/$(PLATFORM)/R-$(R_VERSION)-$(PLATFORM).tar.gz: builder/Dockerfile.$(PLATFORM) builder/package.$(PLATFORM) builder/build.sh builder/docker-compose.yml
+	@make docker-$(PLATFORM)-build
+	@mkdir -p artifacts
+	@echo "Building $@"
+	@echo "  platform : $(PLATFORM)"
+	@echo "  prefix   : $(PREFIX)"
+	@echo "  version  : $(R_VERSION)"
+	@docker run --rm                       \
+	  -v $(shell pwd)/artifacts:/tmp/final \
+		-e R_VERSION=$(R_VERSION)            \
+		-e PREFIX=$(PREFIX)                  \
+		-e LOCAL_STORE=/tmp/final            \
+		r-builds:$(PLATFORM)
+
+local: artifacts/r/$(PLATFORM)/R-$(R_VERSION)-$(PLATFORM).tar.gz
+	@echo "Done"
 
 docker-build:
 	@cd builder && docker-compose build --parallel
