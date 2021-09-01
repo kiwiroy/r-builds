@@ -1,3 +1,5 @@
+#!/bin/bash
+
 if [[ ! -d /tmp/output/centos-8 ]]; then
   mkdir -p /tmp/output/centos-8
 fi
@@ -61,4 +63,3 @@ fpm \
 
 shopt -s extglob
 export PKG_FILE=$(ls /tmp/output/centos-8/[rR]-${R_VERSION}*.@(deb|rpm) | head -1)
-
